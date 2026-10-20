@@ -198,7 +198,11 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
       <fieldset>
         <legend>Vuelo (en USD)</legend>
         <div class="row">
-          <label>Pasaje ida y vuelta, por persona<input type="number" id="vuelo" min="0" step="1" value="950"></label>
+          <label>El precio del pasaje es para<select id="vueloPor"></select></label>
+          <label><span id="vueloLabel">Pasaje ida y vuelta, por persona</span><input type="number" id="vuelo" min="0" step="1" value="950"></label>
+        </div>
+        <p class="hint-line" id="vueloPorPersona"></p>
+        <div class="row">
           <label>Valija despachada, por persona y tramo<span class="hint">0 si el pasaje la incluye</span><input type="number" id="valija" min="0" step="1" value="45"></label>
         </div>
         <div class="bag">
@@ -382,6 +386,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
   // Opciones de "¿por cuántas noches?": 1 noche, todas las noches del viaje y el resto.
   // Si estaba elegido "todas las noches" y cambian las noches del viaje, sigue en "todas".
   let hotelNochesViaje = 0;
+  let vueloPaxViaje = 0;
   function armarHotelNoches(noches) {
     const sel = $("hotelNoches");
     if (noches !== hotelNochesViaje) {
@@ -405,6 +410,20 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     const dias = noches + 1;
     const inclTasas = $("vueloTasas").checked;
     $("tasasWrap").hidden = inclTasas;
+    // Vuelo: el precio puede ser por persona o el total de todos los viajeros
+    const selPor = $("vueloPor");
+    if (pax !== vueloPaxViaje) {
+      const eraTotal = selPor.value === "total";
+      selPor.innerHTML = `<option value="1">1 persona</option>` +
+        (pax > 1 ? `<option value="total">Los ${pax} viajeros (total)</option>` : "");
+      selPor.value = eraTotal && pax > 1 ? "total" : "1";
+      vueloPaxViaje = pax;
+    }
+    const vueloTotal = selPor.value === "total";
+    const vueloPersona = vueloTotal ? num("vuelo") / pax : num("vuelo");
+    $("vueloLabel").textContent = vueloTotal ? `Pasaje ida y vuelta, total de los ${pax}` : "Pasaje ida y vuelta, por persona";
+    $("vueloPorPersona").textContent = vueloTotal && num("vuelo") > 0 ? `= ${usd(vueloPersona)} por persona` : "";
+
     const hotelNoches = armarHotelNoches(noches);
     const hotelNoche = num("hotel") / hotelNoches;
     $("hotelLabel").textContent = hotelNoches === 1 ? "Precio por 1 noche" : `Precio por las ${hotelNoches} noches`;
@@ -413,7 +432,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
       : "";
 
     const items = [
-      ["Vuelos", (num("vuelo") + (inclTasas ? 0 : num("tasas"))) * pax],
+      ["Vuelos", (vueloPersona + (inclTasas ? 0 : num("tasas"))) * pax],
       ["Valijas", num("valija") * 2 * pax],
       ["Alojamiento", hotelNoche * Math.max(1, Math.round(num("habs"))) * noches],
       ["Tasa turística / resort fee", num("resort") * noches],
@@ -482,10 +501,10 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     const destKey = destino.toLowerCase();
     const sky = SKY[destKey];
     const yymmdd = d => d.slice(2).replace(/-/g, "");
-    const gq = `Flights from ${orName} to ${destino}` + (ida ? ` on ${ida} through ${vuelta}` : "");
+    const gq = `Flights from ${orName} to ${destino}` + (ida ? ` on ${ida} through ${vuelta}` : "") + ` ${pax} ${pax === 1 ? "passenger" : "passengers"}`;
     let vl = `<a href="https://www.google.com/travel/flights?hl=es-419&curr=USD&q=${encodeURIComponent(gq)}" target="_blank" rel="noopener">Google Vuelos</a>`;
     if (sky && ida) vl += `<a href="https://www.espanol.skyscanner.com/transporte/vuelos/${orCode}/${sky}/${yymmdd(ida)}/${yymmdd(vuelta)}/?adultsv2=${pax}&currency=USD" target="_blank" rel="noopener">Skyscanner</a>`;
-    $("vueloLinks").innerHTML = `<span>¿No sabés cuánto sale el vuelo? Abrí uno de estos links${ida ? "" : " (cargá la fecha de salida para buscar justo esos días)"}, copiá el precio por persona en dólares y pegalo arriba. En Google Vuelos tocá "Cuadrícula de fechas" para ver qué día sale más barato.</span><div class="btns">${vl}</div>`;
+    $("vueloLinks").innerHTML = `<span>¿No sabés cuánto sale el vuelo? Abrí uno de estos links${ida ? "" : " (cargá la fecha de salida para buscar justo esos días)"}, ya van con ${pax === 1 ? "1 viajero" : `los ${pax} viajeros`}.${pax > 1 ? ` Google Vuelos te muestra el precio total de los ${pax}: arriba elegí "Los ${pax} viajeros (total)" y pegalo tal cual. Skyscanner lo muestra por persona: ahí dejá "1 persona".` : " Copiá el precio y pegalo arriba."} En Google Vuelos tocá "Cuadrícula de fechas" para ver qué día sale más barato.</span><div class="btns">${vl}</div>`;
     const bk = `https://www.booking.com/searchresults.es.html?ss=${encodeURIComponent(destino)}&group_adults=${pax}&no_rooms=${Math.max(1, Math.round(num("habs")))}&selected_currency=USD` + (ida ? `&checkin=${ida}&checkout=${vuelta}` : "");
     $("hotelLinks").innerHTML = `<span>¿No tenés hotel elegido? Buscalo acá con tus fechas y pegá el total tal cual: arriba elegí la cantidad de noches y la cuenta la hacemos nosotros.</span><div class="btns"><a href="${bk}" target="_blank" rel="noopener">Booking</a><a href="https://www.google.com/travel/search?hl=es-419&curr=USD&q=${encodeURIComponent("hoteles en " + destino)}" target="_blank" rel="noopener">Google Hoteles</a></div>`;
 
