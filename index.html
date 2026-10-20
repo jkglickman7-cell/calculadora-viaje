@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Costo Real del Viaje</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Calculá cuánto te cuesta de verdad un viaje desde Argentina: vuelo, hotel, valija, tasas, comidas, asistencia y la percepción del 30% si pagás con tarjeta en pesos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: formulario a la izquierda, "tarjeta de embarque" con el total a la derecha (se apila en celular) */
+:root {
+  --paper: #f2f4f7;
+  --card: #ffffff;
+  --ink: #18223a;
+  --muted: #5b6579;
+  --line: #d8dde6;
+  --accent: #1f43b0;
+  --accent-soft: #e4e9f8;
+  --warn: #b5361f;
+  --warn-soft: #fbe9e5;
+  --ok: #1e7a4c;
+  --hot: #e8461e;
+  --hot-ink: #ffffff;
+  --hot-glow: rgba(232, 70, 30, .35);
+  --display: "Familjen Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #10141d; --card: #181e2b; --ink: #e7ebf3; --muted: #9aa4b8; --line: #2c3446;
+    --accent: #8ea8ff; --accent-soft: #222c47; --warn: #ff8f78; --warn-soft: #3a211d; --ok: #6fd3a0;
+    --hot: #ff6a3d; --hot-ink: #1a0b05; --hot-glow: rgba(255, 106, 61, .3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #10141d; --card: #181e2b; --ink: #e7ebf3; --muted: #9aa4b8; --line: #2c3446;
+  --accent: #8ea8ff; --accent-soft: #222c47; --warn: #ff8f78; --warn-soft: #3a211d; --ok: #6fd3a0;
+  --hot: #ff6a3d; --hot-ink: #1a0b05; --hot-glow: rgba(255, 106, 61, .3);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 24px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 5vw, 44px); line-height: 1.05; margin: 0; text-wrap: balance; }
+.lead { color: var(--muted); max-width: 62ch; margin: 0; }
+.example-note { font-size: 13px; color: var(--warn); background: var(--warn-soft); padding: 6px 10px; border-radius: 6px; justify-self: start; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+form { display: grid; gap: 18px; }
+fieldset { border: 1px solid var(--line); border-radius: 10px; background: var(--card); margin: 0; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+legend { font-family: var(--display); font-weight: 700; font-size: 17px; padding: 0 6px; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+label span.hint { font-size: 12px; }
+input[type=number], input[type=text], select {
+  font: 500 15px var(--mono); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%;
+}
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.check { display: flex; gap: 8px; align-items: center; color: var(--ink); font-size: 14px; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.radios { display: grid; gap: 8px; }
+.radio { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; cursor: pointer; color: var(--ink); }
+.radio:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.radio input { margin-top: 3px; accent-color: var(--accent); }
+.radio small { display: block; color: var(--muted); }
+.rate { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+.rate label { flex: 1 1 160px; }
+button { font: 600 14px var(--body); border-radius: 6px; padding: 9px 14px; cursor: pointer; border: 1px solid var(--accent); background: transparent; color: var(--accent); }
+button.primary { background: var(--accent); color: var(--card); }
+.rate-status { font-size: 12px; color: var(--muted); width: 100%; }
+
+/* tarjeta de embarque */
+.pass { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.pass-head { background: var(--accent); color: var(--card); padding: 14px 18px; display: flex; justify-content: space-between; gap: 12px; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.pass-body { padding: 18px; display: grid; gap: 14px; }
+.total-label { font-size: 13px; color: var(--muted); }
+.total { font-family: var(--display); font-weight: 700; font-size: clamp(34px, 6vw, 46px); line-height: 1; font-variant-numeric: tabular-nums; }
+.total-usd { font-family: var(--mono); color: var(--muted); font-size: 14px; }
+.perpax { display: flex; justify-content: space-between; gap: 12px; border-top: 1px dashed var(--line); padding-top: 12px; font-size: 14px; }
+.perpax strong { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--paper); }
+.bar i { display: block; height: 100%; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+td { padding: 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+td:last-child { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 10px; }
+td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 8px; }
+tr.tax td { color: var(--warn); }
+.desde { border-radius: 8px; padding: 12px; background: var(--warn-soft); color: var(--ink); font-size: 14px; }
+.desde strong { color: var(--warn); font-family: var(--mono); }
+.cta { border-top: 1px dashed var(--line); padding-top: 14px; display: grid; gap: 10px; font-size: 14px; }
+.cta p { margin: 0; }
+.promo { background: var(--hot); color: var(--hot-ink); border-radius: 12px; padding: 18px 18px 16px; display: grid; gap: 8px; box-shadow: 0 6px 18px var(--hot-glow); transform: rotate(-1deg); }
+.promo-kicker { font: 600 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; opacity: .9; }
+.promo-main { font-family: var(--display); font-weight: 700; font-size: clamp(24px, 3.6vw, 30px); line-height: 1.08; text-transform: uppercase; text-wrap: balance; }
+.promo-sub { font-size: 14px; font-weight: 600; }
+@media (prefers-reduced-motion: no-preference) { .promo { animation: promoPulse 2.4s ease-in-out infinite; } }
+@keyframes promoPulse { 0%, 100% { transform: rotate(-1deg) scale(1); } 50% { transform: rotate(-1deg) scale(1.025); } }
+.tip { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink); background: var(--accent-soft); border-radius: 6px; padding: 9px 12px; }
+.tip::before { content: "Consejo · "; font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.tip strong { color: var(--ok); font-family: var(--mono); }
+.tip:empty { display: none; }
+.links { display: grid; gap: 6px; font-size: 13.5px; }
+.links > span { color: var(--muted); }
+.links .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.links a { display: inline-block; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--accent); color: var(--accent); text-decoration: none; font-weight: 600; }
+.links a:hover { background: var(--accent-soft); }
+.wa { display: block; text-align: center; font: 600 14px var(--body); border-radius: 6px; padding: 9px 14px; border: 1px solid var(--ok); color: var(--ok); text-decoration: none; }
+.wa-number { font: 13px var(--mono); color: var(--muted); user-select: all; }
+.copy-status { font-size: 12px; color: var(--ok); min-height: 1em; }
+#summary { width: 100%; min-height: 0; font: 12px var(--mono); color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 8px; resize: vertical; }
+
+.traps { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.traps h2 { font-family: var(--display); font-size: 22px; margin: 0 0 10px; }
+.traps ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 75ch; }
+footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
+@media (prefers-reduced-motion: no-preference) { .bar i { transition: width .25s ease; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Viajes desde Argentina</div>
+    <h1>¿Cuánto te cuesta de verdad el viaje?</h1>
+    <p class="lead">El precio "desde" casi nunca es lo que terminás pagando. Cargá vuelo, hotel y extras, elegí cómo pagás y te mostramos el total final en pesos, con impuestos incluidos.</p>
+    <div class="example-note" id="exampleNote">Los números cargados son un ejemplo. Reemplazalos por los de tu viaje.</div>
+  </header>
+
+  <div class="grid">
+    <form id="calc" autocomplete="off">
+      <fieldset>
+        <legend>El viaje</legend>
+        <div class="row">
+          <label>Destino<input type="text" id="destino" value="Punta Cana" list="destinos"></label>
+          <datalist id="destinos">
+            <option value="Punta Cana"><option value="Puerto Plata"><option value="Cancún"><option value="Miami">
+            <option value="Natal"><option value="Florianópolis"><option value="Río de Janeiro"><option value="Salvador">
+            <option value="Maceió"><option value="Recife"><option value="Madrid">
+          </datalist>
+          <label>Viajeros<input type="number" id="pax" min="1" max="20" value="2"></label>
+          <label>Noches<input type="number" id="noches" min="1" max="60" value="7"></label>
+        </div>
+        <div class="row">
+          <label>Salís desde<select id="origen">
+            <option value="buea|Buenos Aires" selected>Buenos Aires</option>
+            <option value="cor|Córdoba">Córdoba</option>
+            <option value="ros|Rosario">Rosario</option>
+            <option value="mdz|Mendoza">Mendoza</option>
+            <option value="tuc|Tucumán">Tucumán</option>
+            <option value="sla|Salta">Salta</option>
+            <option value="nqn|Neuquén">Neuquén</option>
+            <option value="mdq|Mar del Plata">Mar del Plata</option>
+            <option value="brc|Bariloche">Bariloche</option>
+          </select></label>
+          <label>Fecha de salida<input type="date" id="salida"></label>
+          <label>Vuelta<span class="hint">se calcula con las noches</span><input type="text" id="vuelta" readonly tabindex="-1"></label>
+        </div>
+        <p class="tip" id="tipViaje"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Vuelo (en USD)</legend>
+        <div class="row">
+          <label>Pasaje ida y vuelta, por persona<input type="number" id="vuelo" min="0" step="1" value="950"></label>
+          <label>Valija despachada, por persona y tramo<span class="hint">0 si el pasaje la incluye</span><input type="number" id="valija" min="0" step="1" value="45"></label>
+        </div>
+        <label class="check"><input type="checkbox" id="vueloTasas" checked> El precio del pasaje ya incluye tasas e impuestos</label>
+        <label id="tasasWrap" hidden>Tasas e impuestos, por persona<input type="number" id="tasas" min="0" step="1" value="0"></label>
+        <div class="links" id="vueloLinks"></div>
+        <p class="tip" id="tipVuelo"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Alojamiento (en USD)</legend>
+        <div class="row">
+          <label>Precio por noche, toda la habitación<input type="number" id="hotel" min="0" step="1" value="210"></label>
+          <label>Habitaciones<input type="number" id="habs" min="1" max="10" value="1"></label>
+        </div>
+        <div class="row">
+          <label>Tasa turística o "resort fee", por noche<span class="hint">la cobran en el hotel, no aparece en el "desde"</span><input type="number" id="resort" min="0" step="1" value="0"></label>
+          <label>Régimen<select id="regimen">
+            <option value="ai" selected>All inclusive</option>
+            <option value="desayuno">Con desayuno</option>
+            <option value="solo">Solo alojamiento</option>
+          </select></label>
+        </div>
+        <div class="links" id="hotelLinks"></div>
+        <p class="tip" id="tipHotel"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Lo que nadie suma (en USD)</legend>
+        <div class="row">
+          <label>Comidas, por persona y día<span class="hint" id="comidaHint">con all inclusive, solo extras</span><input type="number" id="comida" min="0" step="1" value="10"></label>
+          <label>Asistencia al viajero, por persona<input type="number" id="asistencia" min="0" step="1" value="45"></label>
+        </div>
+        <div class="row">
+          <label>Traslados aeropuerto-hotel, ida y vuelta (total)<input type="number" id="traslados" min="0" step="1" value="60"></label>
+          <label>Excursiones (total)<input type="number" id="excursiones" min="0" step="1" value="150"></label>
+          <label>Propinas y varios (total)<input type="number" id="varios" min="0" step="1" value="70"></label>
+        </div>
+        <p class="tip" id="tipExtras"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Cómo pagás</legend>
+        <div class="radios">
+          <label class="radio"><input type="radio" name="pago" value="tarjeta" checked>
+            <span>Tarjeta o transferencia en pesos<small>Se suma la percepción del 30% a cuenta de Ganancias (RG 5617). Se puede recuperar, pero recién después y con trámite en ARCA.</small></span></label>
+          <label class="radio"><input type="radio" name="pago" value="dolares">
+            <span>Con dólares propios<small>Pagás en USD, sin percepción. Los pesos se muestran al dólar oficial como referencia.</small></span></label>
+        </div>
+        <div class="rate">
+          <label>Dólar oficial (venta), en pesos<input type="number" id="oficial" min="1" step="0.5" value="1540"></label>
+          <label>Percepción<input type="number" id="percep" min="0" max="100" step="1" value="30"></label>
+          <button type="button" id="fetchRate">Actualizar dólar</button>
+          <div class="rate-status" id="rateStatus">Cotización de referencia: 19/10/2026.</div>
+        </div>
+        <p class="tip" id="tipPago"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Comparalo con el aviso</legend>
+        <label>Precio "desde" que viste publicado, por persona (USD)<span class="hint">opcional</span><input type="number" id="desde" min="0" step="1" value="1299"></label>
+      </fieldset>
+    </form>
+
+    <aside class="pass" aria-live="polite">
+      <div class="pass-head"><span>Costo final</span><span id="passRoute">EZE → PUJ</span></div>
+      <div class="pass-body">
+        <div>
+          <div class="total-label" id="totalLabel">Total del viaje</div>
+          <div class="total" id="totalUsdBig">USD 0</div>
+          <div class="total-usd" id="totalArs">$ 0</div>
+        </div>
+        <div class="perpax"><span>Por persona</span><strong id="perPax">USD 0</strong></div>
+        <div class="bar" id="bar" aria-hidden="true"></div>
+        <table id="breakdown"></table>
+        <div class="desde" id="desdeBox" hidden></div>
+        <div class="cta">
+          <div class="promo" role="note">
+            <div class="promo-kicker">¿Te parece caro?</div>
+            <div class="promo-main">Te mejoramos el precio<br>o te conseguimos el viaje<br>al precio que buscás</div>
+            <div class="promo-sub" id="ctaText">Escribinos con este resumen y lo cotizamos.</div>
+          </div>
+          <textarea id="summary" rows="5" readonly aria-label="Resumen para copiar"></textarea>
+          <button type="button" class="primary" id="copyBtn">Copiar resumen</button>
+          <a class="wa" id="waBtn" target="_blank" rel="noopener" hidden>Enviar por WhatsApp</a>
+          <p class="wa-number" id="waNumber" hidden></p>
+          <div class="copy-status" id="copyStatus"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="traps">
+    <h2>Por qué el "desde" no es el precio final</h2>
+    <ul>
+      <li>Casi siempre es <strong>por persona en base doble</strong>: si viajás solo, el hotel sale casi el doble.</li>
+      <li>Corresponde a <strong>una fecha puntual</strong>, muchas veces temporada baja o salida de madrugada.</li>
+      <li>Las low cost cobran aparte la <strong>valija despachada</strong>, la selección de asiento y hasta el carry-on.</li>
+      <li>Muchos hoteles del Caribe y de Estados Unidos cobran <strong>tasa turística o resort fee</strong> al llegar.</li>
+      <li>Si pagás en pesos se suma la <strong>percepción del 30%</strong> sobre servicios turísticos del exterior.</li>
+      <li>Traslados, asistencia al viajero y comidas fuera del régimen no aparecen en el aviso.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Calculadora orientativa. Los impuestos y la cotización cambian: verificá con tu banco o con ARCA antes de pagar. La percepción del 30% es un anticipo de Ganancias o Bienes Personales y se puede pedir la devolución.
+  </footer>
+</div>
+
+<script>
+(function () {
+  // ===== CONFIGURACIÓN DE LA AGENCIA =====
+  // AHORRO_PCT: el % que se decide el jueves 22/10 comparando precios reales (público vs agencia).
+  // Mientras sea null, la página promete "mejor precio" sin poner ningún porcentaje.
+  const AHORRO_PCT = null;
+  const AHORRO_FECHA = "";        // ej. "octubre 2026", se muestra junto al %
+  const WHATSAPP = "";            // número de ventas con código de país, sin + ni espacios: ej. "5493510000000"
+  // =======================================
+  const $ = id => document.getElementById(id);
+  const num = id => Math.max(0, parseFloat($(id).value) || 0);
+  const ars = n => "$ " + Math.round(n).toLocaleString("es-AR");
+  const usd = n => "USD " + Math.round(n).toLocaleString("es-AR");
+  const COLORS = ["#1f43b0", "#4f7be0", "#8aa6ea", "#e0a33a", "#5aa37a", "#9a6fc9", "#b5361f"];
+  const AIRPORTS = { "punta cana": "PUJ", "natal": "NAT", "puerto plata": "POP", "cancun": "CUN", "cancún": "CUN", "miami": "MIA", "florianopolis": "FLN", "florianópolis": "FLN", "rio de janeiro": "GIG", "río de janeiro": "GIG", "madrid": "MAD", "salvador": "SSA", "maceio": "MCZ", "maceió": "MCZ" };
+  // Códigos de ciudad de Skyscanner para los destinos de la lista
+  const SKY = { "punta cana": "puj", "puerto plata": "pop", "cancún": "cun", "cancun": "cun", "miami": "mia", "natal": "nat", "florianópolis": "fln", "florianopolis": "fln", "río de janeiro": "rio", "rio de janeiro": "rio", "salvador": "ssa", "maceió": "mcz", "maceio": "mcz", "recife": "rec", "madrid": "mad" };
+  (function setDefaultDate() {
+    const d = new Date(); d.setDate(d.getDate() + 45);
+    $("salida").value = d.toISOString().slice(0, 10);
+  })();
+  let touched = false;
+  const tip = (id, html) => { $(id).innerHTML = html; };
+
+  function calc() {
+    const pax = Math.max(1, Math.round(num("pax")));
+    const noches = Math.max(1, Math.round(num("noches")));
+    const dias = noches + 1;
+    const inclTasas = $("vueloTasas").checked;
+    $("tasasWrap").hidden = inclTasas;
+
+    const items = [
+      ["Vuelos", (num("vuelo") + (inclTasas ? 0 : num("tasas"))) * pax],
+      ["Valijas", num("valija") * 2 * pax],
+      ["Alojamiento", num("hotel") * Math.max(1, Math.round(num("habs"))) * noches],
+      ["Tasa turística / resort fee", num("resort") * noches],
+      ["Comidas", num("comida") * pax * dias],
+      ["Asistencia al viajero", num("asistencia") * pax],
+      ["Traslados, excursiones y varios", num("traslados") + num("excursiones") + num("varios")]
+    ];
+    const totalUsd = items.reduce((s, it) => s + it[1], 0);
+    const oficial = num("oficial") || 1;
+    const tarjeta = document.querySelector('input[name="pago"]:checked').value === "tarjeta";
+    const percepUsd = tarjeta ? totalUsd * num("percep") / 100 : 0;
+    const totalArs = (totalUsd + percepUsd) * oficial;
+
+    const totalFinalUsd = totalUsd + percepUsd;
+    $("totalLabel").textContent = tarjeta ? "Total del viaje pagando en pesos (con percepción)" : "Total del viaje pagando en dólares";
+    $("totalUsdBig").textContent = usd(totalFinalUsd);
+    $("totalArs").textContent = tarjeta
+      ? `${usd(totalUsd)} + ${usd(percepUsd)} de percepción · en pesos: ${ars(totalArs)}`
+      : `en pesos, al oficial: ${ars(totalArs)}`;
+    $("perPax").textContent = usd(totalFinalUsd / pax);
+
+    const all = items.concat(tarjeta ? [["Percepción " + num("percep") + "% (recuperable)", percepUsd]] : []);
+    const base = totalUsd + percepUsd || 1;
+    $("bar").innerHTML = all.map((it, i) => it[1] > 0 ? `<i style="width:${(it[1] / base * 100).toFixed(2)}%;background:${COLORS[i % COLORS.length]}"></i>` : "").join("");
+    $("breakdown").innerHTML = all.filter(it => it[1] > 0).map(it => {
+      const i = all.indexOf(it);
+      const tax = it[0].startsWith("Percepción") ? ' class="tax"' : "";
+      return `<tr${tax}><td><span class="dot" style="background:${COLORS[i % COLORS.length]}"></span>${it[0]}</td><td>${usd(it[1])}</td></tr>`;
+    }).join("");
+
+    const destino = $("destino").value.trim() || "tu destino";
+    const code = AIRPORTS[destino.toLowerCase()] || destino.slice(0, 3).toUpperCase();
+    $("passRoute").textContent = "ARG → " + code;
+
+    const desde = num("desde");
+    const realPerPaxUsd = (totalUsd + percepUsd) / pax;
+    if (desde > 0) {
+      const diff = (realPerPaxUsd / desde - 1) * 100;
+      $("desdeBox").hidden = false;
+      $("desdeBox").innerHTML = diff > 0
+        ? `El aviso decía <strong>${usd(desde)}</strong> por persona. Con todo sumado te sale <strong>${usd(realPerPaxUsd)}</strong>: un <strong>${Math.round(diff)}% más</strong>.`
+        : `Tu cálculo da <strong>${usd(realPerPaxUsd)}</strong> por persona, por debajo del "desde" de <strong>${usd(desde)}</strong>. Revisá que no falte nada.`;
+    } else {
+      $("desdeBox").hidden = true;
+    }
+
+    $("summary").value =
+      `Hola! Quiero cotizar este viaje (CALCULADORA)\n` +
+      `Destino: ${destino}\nViajeros: ${pax} · Noches: ${noches}\n` +
+      `Régimen: ${$("regimen").selectedOptions[0].text}\n` +
+      `Me sale por mi cuenta: ${usd(totalFinalUsd)}${tarjeta ? " (pagando en pesos, con percepción)" : " (pagando en dólares)"}\n` +
+      `¿Me lo pueden mejorar?`;
+
+    if (AHORRO_PCT) {
+      const conAgencia = totalFinalUsd * (1 - AHORRO_PCT / 100);
+      $("ctaText").textContent = `En los viajes que cotizamos${AHORRO_FECHA ? " en " + AHORRO_FECHA : ""}, nuestros clientes pagaron en promedio un ${AHORRO_PCT}% menos que armándolo por su cuenta: este viaje quedaría cerca de ${usd(conAgencia)}. Escribinos con este resumen.`;
+    }
+
+    // Links de búsqueda con origen, destino y fechas cargadas
+    const [orCode, orName] = $("origen").value.split("|");
+    const ida = $("salida").value;
+    const vueltaDate = ida ? new Date(ida + "T12:00:00") : null;
+    if (vueltaDate) vueltaDate.setDate(vueltaDate.getDate() + noches);
+    const vuelta = vueltaDate ? vueltaDate.toISOString().slice(0, 10) : "";
+    $("vuelta").value = vuelta ? vuelta.split("-").reverse().join("/") : "";
+    const destKey = destino.toLowerCase();
+    const sky = SKY[destKey];
+    const yymmdd = d => d.slice(2).replace(/-/g, "");
+    const gq = `Flights from ${orName} to ${destino}` + (ida ? ` on ${ida} through ${vuelta}` : "");
+    let vl = `<a href="https://www.google.com/travel/flights?hl=es-419&curr=USD&q=${encodeURIComponent(gq)}" target="_blank" rel="noopener">Google Vuelos</a>`;
+    if (sky && ida) vl += `<a href="https://www.espanol.skyscanner.com/transporte/vuelos/${orCode}/${sky}/${yymmdd(ida)}/${yymmdd(vuelta)}/?adultsv2=${pax}&currency=USD" target="_blank" rel="noopener">Skyscanner</a>`;
+    $("vueloLinks").innerHTML = `<span>¿No sabés cuánto sale el vuelo? Abrí uno de estos links${ida ? "" : " (cargá la fecha de salida para buscar justo esos días)"}, copiá el precio por persona en dólares y pegalo arriba. En Google Vuelos tocá "Cuadrícula de fechas" para ver qué día sale más barato.</span><div class="btns">${vl}</div>`;
+    const bk = `https://www.booking.com/searchresults.es.html?ss=${encodeURIComponent(destino)}&group_adults=${pax}&no_rooms=${Math.max(1, Math.round(num("habs")))}&selected_currency=USD` + (ida ? `&checkin=${ida}&checkout=${vuelta}` : "");
+    $("hotelLinks").innerHTML = `<span>¿No tenés hotel elegido? Buscalo acá con tus fechas. Dividí el total por las noches y pegá el precio por noche.</span><div class="btns"><a href="${bk}" target="_blank" rel="noopener">Booking</a><a href="https://www.google.com/travel/search?hl=es-419&curr=USD&q=${encodeURIComponent("hoteles en " + destino)}" target="_blank" rel="noopener">Google Hoteles</a></div>`;
+
+    // Consejos de cada paso, con la plata calculada sobre los números cargados
+    const valijaUsd = num("valija") * 2 * pax;
+    const valijaSola = num("valija") > 0;
+    tip("tipViaje", pax === 1
+      ? "Viajando solo, el hotel no se divide entre dos. Los avisos \"desde\" son por persona en base doble: a vos te va a salir bastante más."
+      : `Los avisos "desde" son por persona en base doble y para una fecha puntual. Moviendo la salida unos días (fuera de vacaciones y feriados) el mismo viaje puede bajar mucho.`);
+    tip("tipVuelo", (valijaSola
+      ? `Si viajás solo con equipaje de mano te ahorrás <strong>${usd(valijaUsd)}</strong> en valijas. `
+      : `"Con carry on" no es "con valija": fijate que la tarifa incluya la valija despachada antes de comparar. `)
+      + (inclTasas ? "" : "Algunos buscadores muestran el pasaje sin tasas: sumalas siempre antes de comparar dos precios."));
+    const comidaDesayuno = 40 * pax * dias;
+    const reg = $("regimen").value;
+    tip("tipHotel", (num("resort") === 0
+      ? "Preguntá si el hotel cobra tasa turística o resort fee al llegar: en el Caribe y en Estados Unidos es común y no aparece en el precio. "
+      : "")
+      + (reg === "ai"
+        ? `Con all inclusive casi no gastás en comida. Con solo desayuno, comer afuera te costaría unos <strong>${usd(comidaDesayuno)}</strong> más en todo el viaje.`
+        : `Comer afuera ${dias} días suma unos <strong>${usd(num("comida") * pax * dias)}</strong>. Compará contra un all inclusive antes de decidir.`));
+    tip("tipExtras", num("asistencia") === 0
+      ? "No te saltees la asistencia al viajero: una sola consulta médica en el exterior puede salir más que todo el seguro."
+      : "Los traslados del aeropuerto suelen salir más baratos reservados antes que tomando un taxi al llegar.");
+    const percepAhorro = totalUsd * num("percep") / 100;
+    tip("tipPago", tarjeta
+      ? `Si pagás con dólares propios te ahorrás <strong>${usd(percepAhorro)}</strong> de percepción. Pagando en pesos lo podés recuperar después en ARCA, pero esa plata la tenés que poner igual ahora.`
+      : `Pagando en dólares no tenés percepción: te ahorrás <strong>${usd(percepAhorro)}</strong> frente a pagar en pesos.`);
+
+    if (WHATSAPP) {
+      $("waBtn").hidden = false;
+      $("waBtn").href = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent($("summary").value);
+      $("waNumber").hidden = false;
+      $("waNumber").textContent = "WhatsApp: +" + WHATSAPP;
+    }
+  }
+
+  $("regimen").addEventListener("change", () => {
+    const v = $("regimen").value;
+    $("comidaHint").textContent = v === "ai" ? "con all inclusive, solo extras" : v === "desayuno" ? "almuerzo y cena" : "todas las comidas";
+    if (!touched) $("comida").value = v === "ai" ? 10 : v === "desayuno" ? 40 : 55;
+    calc();
+  });
+  $("comida").addEventListener("input", () => { touched = true; });
+  $("calc").addEventListener("input", () => { $("exampleNote").hidden = true; calc(); });
+  $("calc").addEventListener("submit", e => e.preventDefault());
+
+  $("fetchRate").addEventListener("click", async () => {
+    $("rateStatus").textContent = "Buscando cotización…";
+    try {
+      const r = await fetch("https://dolarapi.com/v1/dolares/oficial");
+      const d = await r.json();
+      if (!d.venta) throw new Error();
+      $("oficial").value = d.venta;
+      $("rateStatus").textContent = "Dólar oficial actualizado: " + new Date(d.fechaActualizacion).toLocaleDateString("es-AR") + ".";
+      calc();
+    } catch (e) {
+      $("rateStatus").textContent = "No se pudo traer la cotización desde acá. Escribila a mano (dólar oficial venta de tu banco).";
+    }
+  });
+
+  $("copyBtn").addEventListener("click", () => {
+    const t = $("summary");
+    const done = () => { $("copyStatus").textContent = "Resumen copiado. Pegalo en el chat de la agencia."; };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t.value).then(done).catch(() => { t.select(); $("copyStatus").textContent = "Seleccioné el texto: copialo con Ctrl+C."; });
+    } else { t.select(); $("copyStatus").textContent = "Seleccioné el texto: copialo con Ctrl+C."; }
+  });
+
+  calc();
+})();
+</script>
+
+</body>
+</html>
