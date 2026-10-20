@@ -228,20 +228,20 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
       <fieldset>
         <legend>Alojamiento (en USD)</legend>
         <div class="row">
-          <label>Precio del hotel, toda la habitación<input type="number" id="hotel" min="0" step="1" value="210"></label>
-          <label>¿Ese precio es por cuántas noches?<span class="hint">si la página te dio el total, elegí "Todas"</span><select id="hotelNoches"></select></label>
+          <label>Cantidad de noches<select id="hotelNoches"></select></label>
+          <label><span id="hotelLabel">Precio por 1 noche</span><input type="number" id="hotel" min="0" step="1" value="210"></label>
         </div>
         <p class="hint-line" id="hotelPorNoche"></p>
         <div class="row">
           <label>Habitaciones<input type="number" id="habs" min="1" max="10" value="1"></label>
-        </div>
-        <div class="row">
-          <label>Tasa turística o "resort fee", por noche<span class="hint">la cobran en el hotel, no aparece en el "desde"</span><input type="number" id="resort" min="0" step="1" value="0"></label>
           <label>Régimen<select id="regimen">
             <option value="ai" selected>All inclusive</option>
             <option value="desayuno">Con desayuno</option>
             <option value="solo">Solo alojamiento</option>
           </select></label>
+        </div>
+        <div class="row">
+          <label>Tasa turística o "resort fee", por noche<span class="hint">la cobran en el hotel, no aparece en el "desde"</span><input type="number" id="resort" min="0" step="1" value="0"></label>
         </div>
         <div class="links" id="hotelLinks"></div>
         <p class="tip" id="tipHotel"></p>
@@ -389,7 +389,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
       const eraTodas = prev === hotelNochesViaje && prev > 1;
       const max = Math.max(30, noches);
       let html = `<option value="1">1 noche</option>`;
-      if (noches > 1) html += `<option value="${noches}">Todas: ${noches} noches (total)</option>`;
+      if (noches > 1) html += `<option value="${noches}">${noches} noches (todo el viaje)</option>`;
       for (let n = 2; n <= max; n++) if (n !== noches) html += `<option value="${n}">${n} noches</option>`;
       sel.innerHTML = html;
       sel.value = String(eraTodas ? noches : prev);
@@ -407,6 +407,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     $("tasasWrap").hidden = inclTasas;
     const hotelNoches = armarHotelNoches(noches);
     const hotelNoche = num("hotel") / hotelNoches;
+    $("hotelLabel").textContent = hotelNoches === 1 ? "Precio por 1 noche" : `Precio por las ${hotelNoches} noches`;
     $("hotelPorNoche").textContent = hotelNoches > 1 && num("hotel") > 0
       ? `= ${usd(hotelNoche)} por noche · ${usd(hotelNoche * noches)} por tus ${noches} noches`
       : "";
@@ -486,7 +487,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     if (sky && ida) vl += `<a href="https://www.espanol.skyscanner.com/transporte/vuelos/${orCode}/${sky}/${yymmdd(ida)}/${yymmdd(vuelta)}/?adultsv2=${pax}&currency=USD" target="_blank" rel="noopener">Skyscanner</a>`;
     $("vueloLinks").innerHTML = `<span>¿No sabés cuánto sale el vuelo? Abrí uno de estos links${ida ? "" : " (cargá la fecha de salida para buscar justo esos días)"}, copiá el precio por persona en dólares y pegalo arriba. En Google Vuelos tocá "Cuadrícula de fechas" para ver qué día sale más barato.</span><div class="btns">${vl}</div>`;
     const bk = `https://www.booking.com/searchresults.es.html?ss=${encodeURIComponent(destino)}&group_adults=${pax}&no_rooms=${Math.max(1, Math.round(num("habs")))}&selected_currency=USD` + (ida ? `&checkin=${ida}&checkout=${vuelta}` : "");
-    $("hotelLinks").innerHTML = `<span>¿No tenés hotel elegido? Buscalo acá con tus fechas y pegá el total tal cual: arriba elegí "Todas" y la cuenta la hacemos nosotros.</span><div class="btns"><a href="${bk}" target="_blank" rel="noopener">Booking</a><a href="https://www.google.com/travel/search?hl=es-419&curr=USD&q=${encodeURIComponent("hoteles en " + destino)}" target="_blank" rel="noopener">Google Hoteles</a></div>`;
+    $("hotelLinks").innerHTML = `<span>¿No tenés hotel elegido? Buscalo acá con tus fechas y pegá el total tal cual: arriba elegí la cantidad de noches y la cuenta la hacemos nosotros.</span><div class="btns"><a href="${bk}" target="_blank" rel="noopener">Booking</a><a href="https://www.google.com/travel/search?hl=es-419&curr=USD&q=${encodeURIComponent("hoteles en " + destino)}" target="_blank" rel="noopener">Google Hoteles</a></div>`;
 
     // Consejos de cada paso, con la plata calculada sobre los números cargados
     const valijaUsd = num("valija") * 2 * pax;
