@@ -53,6 +53,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -119,6 +120,14 @@ tr.tax td { color: var(--warn); }
 .promo-sub { font-size: 14px; font-weight: 600; }
 @media (prefers-reduced-motion: no-preference) { .promo { animation: promoPulse 2.4s ease-in-out infinite; } }
 @keyframes promoPulse { 0%, 100% { transform: rotate(-1deg) scale(1); } 50% { transform: rotate(-1deg) scale(1.025); } }
+.bag { border: 1px dashed var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 10px; }
+.bag-title { font-weight: 600; font-size: 14px; }
+.bag .row { align-items: end; }
+.bag-info { margin: 0; font-size: 13px; color: var(--muted); }
+.bag-info a { color: var(--accent); font-weight: 600; }
+.upd { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+.upd-btn { background: var(--accent); color: var(--card); }
+.upd-ok { font-size: 13px; color: var(--ok); font-weight: 600; }
 .tip { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink); background: var(--accent-soft); border-radius: 6px; padding: 9px 12px; }
 .tip::before { content: "Consejo · "; font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
 .tip strong { color: var(--ok); font-family: var(--mono); }
@@ -180,6 +189,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
           <label>Vuelta<span class="hint">se calcula con las noches</span><input type="text" id="vuelta" readonly tabindex="-1"></label>
         </div>
         <p class="tip" id="tipViaje"></p>
+        <div class="upd"><button type="button" class="upd-btn" data-sec="viaje">Actualizar</button><span class="upd-ok" id="ok-viaje" aria-live="polite"></span></div>
       </fieldset>
 
       <fieldset>
@@ -188,10 +198,28 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
           <label>Pasaje ida y vuelta, por persona<input type="number" id="vuelo" min="0" step="1" value="950"></label>
           <label>Valija despachada, por persona y tramo<span class="hint">0 si el pasaje la incluye</span><input type="number" id="valija" min="0" step="1" value="45"></label>
         </div>
+        <div class="bag">
+          <div class="bag-title">¿No te aparece cuánto sale la valija?</div>
+          <div class="row">
+            <label>Aerolínea<select id="aerolinea">
+              <option value="nose" selected>No sé / otra</option>
+              <option value="jetsmart">JetSMART</option>
+              <option value="flybondi">Flybondi</option>
+              <option value="copa">Copa Airlines</option>
+              <option value="latam">LATAM</option>
+              <option value="aerolineas">Aerolíneas Argentinas</option>
+              <option value="arajet">Arajet</option>
+              <option value="gol">GOL</option>
+            </select></label>
+            <button type="button" id="usarEstimado">Usar estimado</button>
+          </div>
+          <p class="bag-info" id="bagInfo"></p>
+        </div>
         <label class="check"><input type="checkbox" id="vueloTasas" checked> El precio del pasaje ya incluye tasas e impuestos</label>
         <label id="tasasWrap" hidden>Tasas e impuestos, por persona<input type="number" id="tasas" min="0" step="1" value="0"></label>
         <div class="links" id="vueloLinks"></div>
         <p class="tip" id="tipVuelo"></p>
+        <div class="upd"><button type="button" class="upd-btn" data-sec="vuelo">Actualizar</button><span class="upd-ok" id="ok-vuelo" aria-live="polite"></span></div>
       </fieldset>
 
       <fieldset>
@@ -210,6 +238,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
         </div>
         <div class="links" id="hotelLinks"></div>
         <p class="tip" id="tipHotel"></p>
+        <div class="upd"><button type="button" class="upd-btn" data-sec="hotel">Actualizar</button><span class="upd-ok" id="ok-hotel" aria-live="polite"></span></div>
       </fieldset>
 
       <fieldset>
@@ -224,6 +253,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
           <label>Propinas y varios (total)<input type="number" id="varios" min="0" step="1" value="70"></label>
         </div>
         <p class="tip" id="tipExtras"></p>
+        <div class="upd"><button type="button" class="upd-btn" data-sec="extras">Actualizar</button><span class="upd-ok" id="ok-extras" aria-live="polite"></span></div>
       </fieldset>
 
       <fieldset>
@@ -241,11 +271,13 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
           <div class="rate-status" id="rateStatus">Cotización de referencia: 19/10/2026.</div>
         </div>
         <p class="tip" id="tipPago"></p>
+        <div class="upd"><button type="button" class="upd-btn" data-sec="pago">Actualizar</button><span class="upd-ok" id="ok-pago" aria-live="polite"></span></div>
       </fieldset>
 
       <fieldset>
         <legend>Comparalo con el aviso</legend>
         <label>Precio "desde" que viste publicado, por persona (USD)<span class="hint">opcional</span><input type="number" id="desde" min="0" step="1" value="1299"></label>
+        <div class="upd"><button type="button" class="upd-btn" data-sec="desde">Actualizar</button><span class="upd-ok" id="ok-desde" aria-live="polite"></span></div>
       </fieldset>
     </form>
 
@@ -315,6 +347,28 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     const d = new Date(); d.setDate(d.getDate() + 45);
     $("salida").value = d.toISOString().slice(0, 10);
   })();
+  // Valija despachada: estimados por tramo comprándola online (guías públicas, octubre 2026; verificar siempre)
+  const BAG_GENERAL = 45;
+  const BAG = {
+    nose: { name: "", est: null, txt: "En general, una valija despachada sale entre <b>USD 25 y 65 por tramo</b> si la agregás al comprar el pasaje. En el aeropuerto suele costar el doble." },
+    jetsmart: { name: "JetSMART", est: 40, txt: "JetSMART: desde unos <b>USD 28 por tramo</b> si la agregás al comprar. Después sube, y en el aeropuerto ronda los USD 60 o más." },
+    flybondi: { name: "Flybondi", est: 30, txt: "Flybondi: desde unos <b>USD 25 por tramo</b> (hasta 20 kg) comprándola online. En el aeropuerto cuesta bastante más." },
+    copa: { name: "Copa Airlines", est: 65, txt: "Copa: las tarifas Classic y Full suelen incluir una valija de 23 kg. La Basic no: agregarla en el aeropuerto cuesta entre <b>USD 65 y 100</b>." },
+    latam: { name: "LATAM", est: null, txt: "LATAM: la tarifa más barata (Light) no incluye valija y las más caras sí. El precio cambia según la ruta." },
+    aerolineas: { name: "Aerolíneas Argentinas", est: null, txt: "Aerolíneas Argentinas: según la tarifa que elijas puede incluir valija o no. Fijate antes de pagar." },
+    arajet: { name: "Arajet", est: null, txt: "Arajet es low cost: la tarifa más barata no incluye valija despachada." },
+    gol: { name: "GOL", est: null, txt: "GOL: según la tarifa puede incluir valija o no. Fijate antes de pagar." }
+  };
+  const GUIA_EQUIPAJE = "https://www.turismocity.com.ar/promociones_aereas/p-cuanto_cuesta_agregar_equipaje_en_cada_aerolinea-3525.html";
+  function bagInfo() {
+    const b = BAG[$("aerolinea").value];
+    const est = b.est || BAG_GENERAL;
+    const q = encodeURIComponent(`precio valija despachada ${b.name || "aerolínea"} vuelo internacional`);
+    $("bagInfo").innerHTML = `${b.txt} El botón carga <b>USD ${est} por tramo</b> como estimado. `
+      + `<a href="${GUIA_EQUIPAJE}" target="_blank" rel="noopener">Ver precios de equipaje por aerolínea</a>`
+      + (b.name ? ` · <a href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener">Buscar ${b.name}</a>` : "");
+  }
+  let lastSecs = {};
   let touched = false;
   const tip = (id, html) => { $(id).innerHTML = html; };
 
@@ -428,6 +482,16 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
       ? `Si pagás con dólares propios te ahorrás <strong>${usd(percepAhorro)}</strong> de percepción. Pagando en pesos lo podés recuperar después en ARCA, pero esa plata la tenés que poner igual ahora.`
       : `Pagando en dólares no tenés percepción: te ahorrás <strong>${usd(percepAhorro)}</strong> frente a pagar en pesos.`);
 
+    bagInfo();
+    lastSecs = {
+      viaje: `${pax} ${pax === 1 ? "viajero" : "viajeros"}, ${noches} noches a ${destino}`,
+      vuelo: `vuelos y valijas: ${usd(items[0][1] + items[1][1])}`,
+      hotel: `alojamiento: ${usd(items[2][1] + items[3][1])}`,
+      extras: `comidas, asistencia y extras: ${usd(items[4][1] + items[5][1] + items[6][1])}`,
+      pago: `total: ${usd(totalFinalUsd)} ${tarjeta ? "pagando en pesos" : "pagando en dólares"}`,
+      desde: desde > 0 ? `comparado con el "desde" de ${usd(desde)}` : "sin comparar con un aviso"
+    };
+
     if (WHATSAPP) {
       $("waBtn").hidden = false;
       $("waBtn").href = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent($("summary").value);
@@ -445,6 +509,30 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
   $("comida").addEventListener("input", () => { touched = true; });
   $("calc").addEventListener("input", () => { $("exampleNote").hidden = true; calc(); });
   $("calc").addEventListener("submit", e => e.preventDefault());
+
+  $("usarEstimado").addEventListener("click", () => {
+    const b = BAG[$("aerolinea").value];
+    $("valija").value = b.est || BAG_GENERAL;
+    $("exampleNote").hidden = true;
+    calc();
+    $("ok-vuelo").textContent = "✓ Cargué el estimado de valija";
+  });
+
+  document.querySelectorAll(".upd-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      calc();
+      const ok = $("ok-" + btn.dataset.sec);
+      ok.textContent = "✓ Tomado · " + lastSecs[btn.dataset.sec];
+      clearTimeout(ok._t);
+      ok._t = setTimeout(() => { ok.textContent = ""; }, 6000);
+    });
+  });
+  // Si cambia algo después de "Actualizar", se borra el ✓ de esa sección
+  $("calc").addEventListener("input", e => {
+    const fs = e.target.closest("fieldset");
+    const ok = fs && fs.querySelector(".upd-ok");
+    if (ok) ok.textContent = "";
+  });
 
   $("fetchRate").addEventListener("click", async () => {
     $("rateStatus").textContent = "Buscando cotización…";
